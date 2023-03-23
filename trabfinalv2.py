@@ -1,5 +1,16 @@
 from tqdm import tqdm
 import time
+import abc
+
+
+class Autentica(abc.ABC):
+    @abc.abstractmethod
+    def aut_cliente(self, cpf, senha):
+        pass
+
+    @abc.abstractmethod
+    def aut_adm(self, nome, senha):
+        pass
 
 
 class Usuario():
@@ -10,28 +21,12 @@ class Usuario():
         self._senha = senha
 
     @property
-    def nome(self):
-        return self._nome
-
-    @property
-    def cpf(self):
-        return self._cpf
-
-    @property
     def email(self):
         return self._email
 
     @property
     def senha(self):
         return self._senha
-
-    @nome.setter
-    def nome(self, nome):
-        self._nome = nome
-
-    @cpf.setter
-    def cpf(self, cpf):
-        self._cpf = cpf
 
     @email.setter
     def email(self, email):
@@ -49,28 +44,12 @@ class Jogos():
         self._dev = Dev
 
     @property
-    def nome(self):
-        return self._nome
-
-    @property
     def valor(self):
         return self ._valor
-
-    @property
-    def dev(self):
-        return self._dev
-
-    @nome.setter
-    def set_nome(self, nome):
-        self._nome = nome
 
     @valor.setter
     def set_valor(self, valor):
         self._valor = valor
-
-    @dev.setter
-    def set_dev(self, dev):
-        self._dev = dev
 
 
 class Administrador(Usuario):
@@ -91,11 +70,43 @@ class Loja():
         self.historico = Historico()
         self.admin = Administrador()
 
+    def verifica_cliente(self, cpf, senha):
+        obj = Loja()
+        if isinstance(obj, Autentica):
+            retorno = loja.aut_cliente(cpf, senha)
+            if retorno:
+                print('Logado com sucesso')
+                return True
+            else:
+                return False
+        else:
+            print('Objeto nao e instancia de Autentica')
+            return False
+
+    def verifica_adm(self, nome, senha):
+        obj = Loja()
+        if isinstance(obj, Autentica):
+            retorno = loja.aut_adm(nome, senha)
+            if retorno == True:
+                print('Logado com sucesso')
+                return True
+    
+        else:
+            print('Objeto nao e instancia de Autentica')
+            return False
+
     def add_cliente(self, cpf, usuario):
         if cpf in self._listclientes.keys():
             print('Cpf ja cadastrado')
         else:
             self._listclientes[cpf] = usuario
+
+    def remover_cliente(self, cpf):
+        if cpf in self._listclientes:
+            self._listclientes.pop(cpf)
+            print('Remoçao feita com sucesso')
+        else:
+            print('Cliente nao cadastrado')
 
     def add_jogos(self, nome, jogo):
         if nome in self.list_jogos:
@@ -148,9 +159,9 @@ class Loja():
     def remover_biblioteca(self, nome):
         self.biblioteca.pop(nome)
 
-    def login_cliente(self, email, senha):
-        if email in self._listclientes:
-            usuario = self._listclientes[email]
+    def aut_cliente(self, cpf, senha):
+        if cpf in self._listclientes:
+            usuario = self._listclientes[cpf]
             if usuario.senha == senha:
                 print('Login realizado com sucesso')
                 while True:
@@ -168,9 +179,12 @@ class Loja():
                             'Informe o nome do jogo que deseja comprar: ')
                         self.comprar(nome)
                     elif opc == '2':
-                        valor = int(
-                            input('Informe o valor que deseja depositar: '))
-                        self.deposita(valor)
+                        try:
+                            valor = int(
+                                input('Informe o valor que deseja depositar: '))
+                            self.deposita(valor)
+                        except:
+                            print("Informe um numero inteiro.")
                     elif opc == '3':
                         self.imprimir_jogos()
                     elif opc == '4':
@@ -188,11 +202,12 @@ class Loja():
                         print('Informe uma opçao valida')
             else:
                 print('Senha incorreta')
+                return False
         else:
-            print('CPF não cadastrado na loja')
+            return False
 
-    def login_adm(self, nome, senha):
-        if self.admin.senha == senha and self.admin._nome == nome:
+    def aut_adm(self, nome, senha):
+        if nome == self.admin._nome and senha == self.admin._senha:
             print('Adminstrador logado com sucesso!')
             while True:
                 print('==== Menu de administrador ====')
@@ -200,11 +215,16 @@ class Loja():
                 print('2- Remover jogos do catalogo')
                 print('3- Exibir Lista de clientes')
                 print('4- Historico de transaçes realziadas na conta')
-                print('5- Sair da conta administrador')
+                print('5- Para excluir uma conta da loja')
+                print('6- Para fazer logout')
                 opc = input('')
                 if opc == '1':
                     nome = input('Informe o nome do jogo: ')
-                    valor = int(input('Informe o valor do jogo: '))
+                    try:
+                        valor = int(input('Informe o valor do jogo: '))
+                    except:
+                        print('Informe um valor inteiro')
+                        valor = int(input('Informe o valor do jogo: '))
                     dev = input('Informe o desenvolvedor do jogo: ')
                     j = Jogos(nome, valor, dev)
                     self.add_jogos(nome, j)
@@ -217,12 +237,16 @@ class Loja():
                 elif opc == '4':
                     self.historico.imprimir()
                 elif opc == '5':
+                    cpf = input(
+                        'Informe o cpf do titular que deseja remover a conta: ')
+                    self.remover_cliente(cpf)
+                elif opc == '6':
                     break
-
                 else:
                     print('Informe uma opçao valida')
         else:
-            print('Informaçoes de login de adminstrador incorretas!')
+            print('Informacoes de administrador incorretas')
+            return False
 
 
 class Historico():
@@ -235,3 +259,47 @@ class Historico():
     def imprimir(self):
         for i in self.historico:
             print(i)
+
+
+loja = Loja()
+a = Administrador()
+Autentica.register(Loja)
+while True:
+    print("=== Loja de Jogos ===")
+    print("1 - Cadastro de Cliente")
+    print("2 - Login no sistema")
+    print('3 - Exibir lista de jogos disponiveis')
+    print("4 - Login como adm")
+    print("5 - Sair")
+
+    opcao = input("Escolha uma opção: ")
+
+    if opcao == '1':
+        nome = input('Informe seu nome: ')
+        cpf = input('Informe seu cpf: ')
+        email = input('Informe seu email: ')
+        senha = input('Informe sua senha: ')
+        u = Usuario(nome, cpf, email, senha)
+        loja.add_cliente(cpf, u)
+    if opcao == '2':
+        cpf = input('Informe seu cpf: ')
+        senha = input('Informe sua senha: ')
+        verifica = loja.verifica_cliente(cpf, senha)
+        if verifica == True:
+            loja.aut_cliente(cpf, senha)
+        else:
+            print('Cpf ou senha incorretos!')
+    if opcao == '3':
+        loja.imprimir_jogos()
+
+    if opcao == '4':
+        nome = input('Nome adm: ')
+        senha = input('senha adm: ')
+        verifca = loja.verifica_adm(nome, senha)
+        if verifca == True:
+            loja.aut_adm(nome, senha)
+
+    elif opcao == '5':
+        break
+    else:
+        print('')
